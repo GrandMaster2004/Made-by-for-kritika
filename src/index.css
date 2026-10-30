@@ -2,9 +2,9 @@
 
 /* ───────────────────────── Design tokens ───────────────────────── */
 @theme {
-  --font-sans: "Nunito", ui-rounded, "SF Pro Rounded", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
-  --font-serif: "Playfair Display", "Iowan Old Style", Georgia, "Times New Roman", serif;
-  --font-script: "Dancing Script", "Brush Script MT", "Segoe Script", cursive;
+  --font-sans: "Nunito", "Mali", ui-rounded, "SF Pro Rounded", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  --font-serif: "Playfair Display", "Mali", "Iowan Old Style", Georgia, "Times New Roman", serif;
+  --font-script: "Dancing Script", "Mali", "Brush Script MT", "Segoe Script", cursive;
 
   --color-blush: #ffd7e2;
   --color-blush-soft: #fff0f4;
@@ -558,6 +558,34 @@
     @apply rounded-full px-3 py-1.5 text-[0.85rem] font-bold text-wine;
     background: rgb(255 255 255 / 0.75);
     border: 1px solid #ffd0dc;
+  }
+  .bill {
+    @apply mx-auto mt-5 max-w-sm rounded-2xl px-4 py-3.5 text-left;
+    background: rgb(255 255 255 / 0.7);
+    border: 1.5px dashed #f4a6bd;
+  }
+  .bill-title {
+    @apply text-center text-[0.8rem] font-extrabold tracking-[0.12em] text-romance uppercase;
+  }
+  .bill-list {
+    @apply mt-2.5 flex flex-col gap-1.5;
+  }
+  .bill-line {
+    @apply grid items-baseline gap-2 text-[0.92rem] leading-snug text-plum;
+    grid-template-columns: 1.4rem 2.2rem 1fr;
+  }
+  .bill-qty {
+    @apply text-right font-extrabold text-romance;
+    font-variant-numeric: tabular-nums;
+  }
+  .bill-note {
+    @apply mt-2.5 text-center text-[0.85rem] font-bold text-wine/80;
+  }
+  .bill > .bill-note:only-child {
+    @apply mt-0;
+  }
+  .c-future {
+    @apply font-serif text-[1.05rem] font-bold text-wine italic;
   }
   .c-signature {
     @apply mt-5 font-script text-[1.7rem] font-bold text-romance;

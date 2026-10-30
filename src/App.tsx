@@ -26,6 +26,7 @@ export default function App() {
   const [stage, setStage] = useState<Stage>('welcome');
   const [leaving, setLeaving] = useState(false);
   const [questionIndex, setQuestionIndex] = useState(0);
+  const [punishments, setPunishments] = useState(0);
   const switchTimer = useRef<number | null>(null);
 
   useEffect(
@@ -60,8 +61,12 @@ export default function App() {
   const begin = useCallback(() => {
     play('start');
     setQuestionIndex(0);
+    setPunishments(0);
     goTo('questions');
   }, [goTo, play]);
+
+  /** NO only ever adds a playful punishment; it never answers a question. */
+  const punish = useCallback(() => setPunishments((n) => n + 1), []);
 
   /** Only a YES ever reaches here. NO has no path to this function. */
   const answeredYes = useCallback(() => {
@@ -83,9 +88,17 @@ export default function App() {
       <main key={stage} className={`stage ${leaving ? 'stage-leave' : 'stage-enter'}`} data-stage={stage}>
         {stage === 'welcome' && <Welcome onBegin={begin} />}
         {stage === 'questions' && (
-          <Questions index={questionIndex} onAnswered={answeredYes} reducedMotion={reducedMotion} />
+          <Questions
+            index={questionIndex}
+            onAnswered={answeredYes}
+            punishments={punishments}
+            onPunish={punish}
+            reducedMotion={reducedMotion}
+          />
         )}
-        {stage === 'celebration' && <Celebration onRestart={restart} reducedMotion={reducedMotion} />}
+        {stage === 'celebration' && (
+          <Celebration punishments={punishments} onRestart={restart} reducedMotion={reducedMotion} />
+        )}
       </main>
     </>
   );

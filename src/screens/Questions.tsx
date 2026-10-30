@@ -2,7 +2,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { Burst } from '../components/Burst';
 import { DodgingNoButton } from '../components/DodgingNoButton';
 import { HeartGlyph } from '../components/art';
-import { NO_TEASES, QUESTIONS, type Question } from '../content';
+import { PUNISHMENTS, QUESTIONS, UI, type Question } from '../content';
 import type { Point } from '../lib/geometry';
 import { cssVars } from '../lib/style';
 import { useSound } from '../sound/SoundProvider';
@@ -12,22 +12,28 @@ interface QuestionsProps {
   index: number;
   /** Called once, after the YES reaction for the current question has played. */
   onAnswered: () => void;
+  /** Punishments earned so far (one per NO attempt, across all questions). */
+  punishments: number;
+  /** Called on every NO attempt. Never advances anything. */
+  onPunish: () => void;
   reducedMotion: boolean;
 }
 
-export function Questions({ index, onAnswered, reducedMotion }: QuestionsProps) {
+export function Questions({ index, onAnswered, punishments, onPunish, reducedMotion }: QuestionsProps) {
   const total = QUESTIONS.length;
   const question = QUESTIONS[index];
   if (!question) return null;
 
   return (
-    <section className="screen questions-screen" aria-label={total === 1 ? 'The question' : `Question ${index + 1} of ${total}`}>
+    <section className="screen questions-screen" aria-label={UI.progress(index + 1, total)}>
       <Progress current={index} total={total} />
       <QuestionCard
         key={question.id}
         question={question}
         isLast={index === total - 1}
         onAnswered={onAnswered}
+        punishments={punishments}
+        onPunish={onPunish}
         reducedMotion={reducedMotion}
       />
     </section>
@@ -38,7 +44,7 @@ function Progress({ current, total }: { current: number; total: number }) {
   return (
     <div className="q-progress" data-protect role="status" aria-live="polite">
       <span className="q-progress-label">
-        {total === 1 ? 'Bas ek sawaal 💌' : `Question ${current + 1} of ${total}`}
+        {UI.progress(current + 1, total)}
       </span>
       {total > 1 && (
         <span className="q-progress-hearts" aria-hidden="true">
@@ -60,10 +66,12 @@ interface QuestionCardProps {
   question: Question;
   isLast: boolean;
   onAnswered: () => void;
+  punishments: number;
+  onPunish: () => void;
   reducedMotion: boolean;
 }
 
-function QuestionCard({ question, isLast, onAnswered, reducedMotion }: QuestionCardProps) {
+function QuestionCard({ question, isLast, onAnswered, punishments, onPunish, reducedMotion }: QuestionCardProps) {
   const [phase, setPhase] = useState<Phase>('asking');
   const [teases, setTeases] = useState(0);
   const [burstAt, setBurstAt] = useState<Point | null>(null);
@@ -93,10 +101,11 @@ function QuestionCard({ question, isLast, onAnswered, reducedMotion }: QuestionC
 
   const handleDodge = useCallback(() => {
     setTeases((t) => t + 1);
+    onPunish();
     play('no');
-  }, [play]);
+  }, [onPunish, play]);
 
-  const tease = teases > 0 ? NO_TEASES[(teases - 1 + question.id) % NO_TEASES.length] : '';
+  const tease = teases > 0 && punishments > 0 ? PUNISHMENTS[(punishments - 1) % PUNISHMENTS.length]?.tease ?? '' : '';
   const grow = 1 + Math.min(teases, 4) * 0.04;
 
   return (
@@ -152,7 +161,7 @@ function QuestionCard({ question, isLast, onAnswered, reducedMotion }: QuestionC
             </span>
             <p className="q-reaction-text">{question.reaction}</p>
             <p className="q-reaction-next">
-              {isLast ? 'Ek chhota sa surprise aa raha hai' : 'Agla sawaal aa raha hai'}
+              {isLast ? UI.lastQuestion : UI.nextQuestion}
               <span className="dots" aria-hidden="true">
                 <i />
                 <i />

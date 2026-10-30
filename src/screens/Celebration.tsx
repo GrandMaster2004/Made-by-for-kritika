@@ -1,18 +1,20 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type MouseEvent as ReactMouseEvent } from 'react';
 import { createPortal } from 'react-dom';
 import { HeartGlyph, Teddy } from '../components/art';
-import { CELEBRATION, HUG_MESSAGES } from '../content';
+import { CELEBRATION, HUG, NAMES, PUNISHMENTS } from '../content';
 import { cssVars } from '../lib/style';
 import { useSound } from '../sound/SoundProvider';
 
 interface CelebrationProps {
+  /** How many times she tried NO — each one earned a punishment. */
+  punishments: number;
   onRestart: () => void;
   reducedMotion: boolean;
 }
 
 const YAY = 'YAYYYYY,';
 
-export function Celebration({ onRestart, reducedMotion }: CelebrationProps) {
+export function Celebration({ punishments, onRestart, reducedMotion }: CelebrationProps) {
   const [hugOpen, setHugOpen] = useState(false);
   const [hugCount, setHugCount] = useState(0);
   const [showConfetti, setShowConfetti] = useState(!reducedMotion);
@@ -31,7 +33,8 @@ export function Celebration({ onRestart, reducedMotion }: CelebrationProps) {
   };
   const closeHug = useCallback(() => setHugOpen(false), []);
 
-  const hugMessage = HUG_MESSAGES[(Math.max(hugCount, 1) - 1) % HUG_MESSAGES.length];
+  const hugMessage = HUG.messages[(Math.max(hugCount, 1) - 1) % HUG.messages.length];
+  const bill = useMemo(() => buildBill(punishments), [punishments]);
 
   return (
     <section className="screen celebration-screen" aria-labelledby="celebration-title">
@@ -39,7 +42,7 @@ export function Celebration({ onRestart, reducedMotion }: CelebrationProps) {
 
       <div className="celebration-inner">
         <div className="celebration-card glass-card rise" style={cssVars({ '--d': '0ms' })}>
-          <h1 id="celebration-title" className="yay" aria-label="YAYYYYY, KRITIKA!">
+          <h1 id="celebration-title" className="yay" aria-label={`YAYYYYY, ${NAMES.her.toUpperCase()}!`}>
             <span className="yay-word" aria-hidden="true">
               {YAY.split('').map((ch, i) => (
                 <span key={i} className="wave" style={cssVars({ '--i': i })}>
@@ -47,7 +50,7 @@ export function Celebration({ onRestart, reducedMotion }: CelebrationProps) {
                 </span>
               ))}
             </span>{' '}
-            <span className="yay-name" aria-hidden="true">KRITIKA!</span>
+            <span className="yay-name" aria-hidden="true">{NAMES.her.toUpperCase()}!</span>
           </h1>
           <p className="yay-emoji" aria-hidden="true">
             🥹❤️🌹
@@ -64,15 +67,36 @@ export function Celebration({ onRestart, reducedMotion }: CelebrationProps) {
             ))}
           </ul>
 
+          <div className="bill" data-testid="bill">
+            {bill.length > 0 ? (
+              <>
+                <p className="bill-title">{CELEBRATION.billTitle}</p>
+                <ul className="bill-list">
+                  {bill.map((line) => (
+                    <li key={line.key} className="bill-line">
+                      <span aria-hidden="true">{line.icon}</span>
+                      <span className="bill-qty">{line.amount}</span>
+                      <span>{line.label}</span>
+                    </li>
+                  ))}
+                </ul>
+                <p className="bill-note">{CELEBRATION.billNote}</p>
+              </>
+            ) : (
+              <p className="bill-note">{CELEBRATION.billEmpty}</p>
+            )}
+          </div>
+
+          <p className="c-text c-future">{CELEBRATION.future}</p>
           <p className="c-text">{CELEBRATION.closing}</p>
           <p className="c-signature">{CELEBRATION.signature}</p>
         </div>
 
-        <h2 className="finale rise" style={cssVars({ '--d': '700ms' })} aria-label={`Kritika and Yash — ${CELEBRATION.finaleSub}`}>
+        <h2 className="finale rise" style={cssVars({ '--d': '700ms' })} aria-label={`${NAMES.her} and ${NAMES.me} — ${CELEBRATION.finaleSub}`}>
           <span className="finale-names" aria-hidden="true">
-            <span className="finale-name">Kritika</span>
+            <span className="finale-name">{NAMES.her}</span>
             <HeartGlyph className="finale-heart" />
-            <span className="finale-name">Yash</span>
+            <span className="finale-name">{NAMES.me}</span>
           </span>
           <span className="finale-sub" aria-hidden="true">
             — {CELEBRATION.finaleSub}
@@ -90,6 +114,29 @@ export function Celebration({ onRestart, reducedMotion }: CelebrationProps) {
       {hugOpen && <HugOverlay message={hugMessage} onClose={closeHug} />}
     </section>
   );
+}
+
+interface BillLine {
+  key: string;
+  icon: string;
+  amount: number;
+  label: string;
+}
+
+/** Adds up every punishment she earned into one tidy bill. */
+function buildBill(count: number): BillLine[] {
+  const totals = new Map<number, number>();
+  for (let k = 0; k < count; k++) {
+    const i = k % PUNISHMENTS.length;
+    totals.set(i, (totals.get(i) ?? 0) + (PUNISHMENTS[i]?.amount ?? 0));
+  }
+  return [...totals.entries()]
+    .sort(([a], [b]) => a - b)
+    .flatMap(([i, amount]) => {
+      const p = PUNISHMENTS[i];
+      if (!p) return [];
+      return [{ key: `p${i}`, icon: p.icon, amount, label: amount === 1 ? p.unit[0] : p.unit[1] }];
+    });
 }
 
 const CONFETTI_CHARS = ['❤️', '🌹', '✨', '💖', '💞', '🎉', '💕', '🌸'] as const;
@@ -137,7 +184,7 @@ function HugOverlay({ message, onClose }: { message: string; onClose: () => void
   }, [onClose]);
 
   return createPortal(
-    <div className="hug-overlay" role="dialog" aria-modal="true" aria-label="A virtual hug from Yash" onClick={onClose}>
+    <div className="hug-overlay" role="dialog" aria-modal="true" aria-label={HUG.label} onClick={onClose}>
       <div
         className="hug-card glass-card"
         onClick={(e: ReactMouseEvent<HTMLDivElement>) => e.stopPropagation()}
@@ -149,10 +196,10 @@ function HugOverlay({ message, onClose }: { message: string; onClose: () => void
           <span className="hug-pop p2" aria-hidden="true">💕</span>
           <span className="hug-pop p3" aria-hidden="true">💖</span>
         </div>
-        <p className="hug-title">Tight wali jhappi! 🤗</p>
+        <p className="hug-title">{HUG.title}</p>
         <p className="hug-msg">{message}</p>
         <button ref={closeRef} type="button" className="btn-yes btn-small" onClick={onClose}>
-          Aww, thank you 🥹
+          {HUG.thanks}
         </button>
       </div>
     </div>,
